@@ -8,9 +8,7 @@ use LWP::UserAgent;
 use URI::Escape;
 use JSON qw(encode_json);
 
-use Data::Dumper;
-
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
 	my $package = shift;
@@ -1422,7 +1420,7 @@ __END__
 
 =head1 NAME
 
-Complete Perl client to the TMDb API
+WWW::TheMovieDB - Complete Perl client to the TMDb API
 
 =head1 SYNOPSIS
 
