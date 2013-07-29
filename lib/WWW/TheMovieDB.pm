@@ -8,7 +8,7 @@ use LWP::UserAgent;
 use URI::Escape;
 use JSON qw(encode_json);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
 	my $package = shift;

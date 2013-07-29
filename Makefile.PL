@@ -5,8 +5,13 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'WWW::TheMovieDB',
     VERSION_FROM      => 'lib/WWW/TheMovieDB.pm', # finds $VERSION
-    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    PREREQ_PM         => {
+        'HTTP::Request'    => '6.00',
+        'LWP::UserAgent'   => '6.00',
+        'URI::Escape'      => '3.31',
+	'JSON'             => '2.53'	
+    },
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/WWW/TheMovieDB.pm', # retrieve abstract from module
-       AUTHOR         => 'Paul Jobson <pjobson@macports.org>') : ()),
+       AUTHOR         => 'Paul Jobson <pjobson@gmail.com>') : ()),
 );

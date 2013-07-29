@@ -1,4 +1,4 @@
-WWW-TheMovieDB version 0.02
+WWW-TheMovieDB version 0.03
 ===========================
 
 This module interfaces with TMDb API v3, it includes all of the available methods from the API.
@@ -16,9 +16,9 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  HTTP::Request;
-  LWP::UserAgent;
-  URI::Escape;
+  HTTP::Request
+  LWP::UserAgent
+  URI::Escape
   JSON
 
 COPYRIGHT AND LICENCE
