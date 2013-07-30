@@ -1,4 +1,4 @@
-WWW-TheMovieDB version 0.03
+WWW-TheMovieDB version 0.04
 ===========================
 
 This module interfaces with TMDb API v3, it includes all of the available methods from the API.

@@ -9,3 +9,7 @@ Revision history for Perl extension WWW::TheMovieDB.
 
 0.03  Mon Jul 29 13:00:00 2013
 	- Makefile update
+
+0.04  Mon Jul 29 22:00:00 2013
+	- Update for Perl 10.x
+

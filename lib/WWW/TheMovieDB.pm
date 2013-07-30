@@ -1,6 +1,6 @@
 package WWW::TheMovieDB;
 
-use 5.012004;
+use 5.010000;
 use strict;
 use warnings;
 use HTTP::Request;
@@ -8,7 +8,7 @@ use LWP::UserAgent;
 use URI::Escape;
 use JSON qw(encode_json);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new {
 	my $package = shift;
