@@ -8,23 +8,27 @@ use LWP::UserAgent;
 use URI::Escape;
 use JSON qw(encode_json);
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
+our $EMPTY = q{};
+our $SL = q{/};
+our $AM = q{&};
+our $EQ = q{=};
 
 sub new {
-	my $package = shift;
-	my %params = ($_[0]) ? %{$_[0]} : ();
+	my $package = bless{}, shift;
+	my $params = shift;
 
-	$package::api_key          = $params{'key'}              || '';
-	$package::language         = $params{'language'}         || 'en';
-	$package::version          = $params{'version'}          || '3';
-	$package::type             = $params{'type'}             || 'json';
-	$package::uri              = $params{'uri'}              || 'http://api.themoviedb.org';
-	$package::request_token    = $params{'requset_token'}    || '';
-	$package::session_id       = $params{'session_id'}       || '';
-	$package::guest_session_id = $params{'guest_session_id'} || '';
-	$pacakge::user_id          = $params{'user_id'}          || '';
+	$package->{'api_key'}          = $params->{'key'}              || $EMPTY;
+	$package->{'language'}         = $params->{'language'}         || 'en';
+	$package->{'version'}          = $params->{'version'}          || '3';
+	$package->{'type'}             = $params->{'type'}             || 'json';
+	$package->{'uri'}              = $params->{'uri'}              || 'http://api.themoviedb.org';
+	$package->{'request_token'}    = $params->{'requset_token'}    || $EMPTY;
+	$package->{'session_id'}       = $params->{'session_id'}       || $EMPTY;
+	$package->{'guest_session_id'} = $params->{'guest_session_id'} || $EMPTY;
+	$package->{'user_id'}          = $params->{'user_id'}          || $EMPTY;
 
-	return bless({}, $package);
+	return $package;
 }
 
 #
@@ -33,50 +37,50 @@ sub new {
 
 sub language {
 	my $package = shift;
-	$package::lang = shift;
-	return;
+	$package->{'language'} = shift;
+	return $package;
 }
 
 sub version {
 	my $package = shift;
-	$pacakge::ver = shift;
-	return;
+	$package->{'ver'} = shift;
+	return $package;
 }
 
 sub api_key {
 	my $package = shift;
-	$package::key = shift;
-	return;
+	$package->{'api_key'} = shift;
+	return $package;
 }
 
 sub type {
 	my $package = shift;
-	$package::type = shift;
-	return;
+	$package->{'type'} = shift;
+	return $package;
 }
 
 sub request_token {
 	my $package = shift;
-	$package::request_token = shift;
-	return;
+	$package->{'request_token'} = shift;
+	return $package;
 }
 
 sub session_id {
 	my $package = shift;
-	$package::session_id = shift;
-	return;
+	$package->{'session_id'} = shift;
+	return $package;
 }
 
 sub guest_session_id {
 	my $package = shift;
-	$package::guest_session_id = shift;
-	return;
+	$package->{'guest_session_id'} = shift;
+	return $package;
 }
 
 sub user_id {
 	my $package = shift;
-	$package::user_id = shift;
-	return;
+	$package->{'user_id'} = shift;
+	return $package;
 }
 
 #
@@ -85,16 +89,17 @@ sub user_id {
 
 sub buildURL {
 	my $package = shift;
-	my %params = ($_[0]) ? %{$_[0]} : ();
-	my %query_string = $params{'query_string'} ? %{$params{'query_string'}} : ();
+	my $params = shift;
 
-	my $url  = $package::uri ."/". $package::version ."/";
-	   $url .= $params{'function'};
+	my %query_string = $params->{'query_string'} ? %{$params->{'query_string'}} : ();
 
-	   $url .= "?api_key=". $package::api_key;
+	my $url  = $package->{'uri'} . $SL . $package->{'version'} . $SL;
+	   $url .= $params->{'function'};
+
+	   $url .= "?api_key=". $package->{'api_key'};
 
 	for my $key ( keys %query_string ) {
-		$url .= "&". $key ."=". $query_string{$key};
+		$url .= $AM . $key . $EQ . $query_string{$key};
 	}
 
 	return $url;
@@ -102,11 +107,11 @@ sub buildURL {
 
 sub getURL {
 	my $package = shift;
-	my %params = ($_[0]) ? %{$_[0]} : ();
+	my $params = shift;
 
-	my $url = $params{'url'};
-	my $method = $params{'method'};
-	my $json = $params{'json'} || '';
+	my $url = $params->{'url'};
+	my $method = $params->{'method'};
+	my $json = $params->{'json'} || $EMPTY;
 
 	my $ua = LWP::UserAgent->new;
 	   $ua->agent("WWW::TheMovieDB/". $VERSION);
@@ -116,7 +121,7 @@ sub getURL {
 	   $request->method( $method );
 	   $request->uri( $url );
 	   $request->header(accept=>'application/json');
-	if ($json ne "") {
+	if ($json ne $EMPTY) {
 		$request->header( 'Content-Type' => 'application/json' );
 		$request->content( $json );
 	}
@@ -145,11 +150,10 @@ sub Configuration::configuration {
 		'function' => 'configuration'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
-
 }
 
 #
@@ -167,7 +171,7 @@ sub Authentication::request_token {
 		'function' => 'authentication/token/new'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -178,15 +182,16 @@ sub Authentication::session_new {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fauthentication%2Fsession%2Fnew
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'request_token'} = $query_string{'request_token'} || $package::request_token;
+	my $query_string = shift;
+
+	$query_string->{'request_token'} = $query_string->{'request_token'} || $package->{'request_token'};
 
 	my $url = $package->buildURL({
 		'function'     => 'authentication/session/new',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -208,7 +213,7 @@ sub Authentication::guest_session_new {
 		'function' => 'authentication/guest_session/new'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -223,15 +228,16 @@ sub Account::account {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Faccount
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
 
 	my $url = $package->buildURL({
 		'function'     => 'account',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -242,18 +248,19 @@ sub Account::lists {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Faccount%2F{id}%2Flists
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
-	$query_string{'language'}   = $query_string{'language'}   || $package::language;
-	$query_string{'page'}       = $query_string{'page'}       || 1;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
+	$query_string->{'language'}   = $query_string->{'language'}   || $package->{'language'};
+	$query_string->{'page'}       = $query_string->{'page'}       || 1;
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/lists',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/lists',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -264,20 +271,21 @@ sub Account::favorite_movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Faccount%2F{id}%2Ffavorite_movies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
-	$query_string{'language'}   = $query_string{'language'}   || $package::language;
-	$query_string{'page'}       = $query_string{'page'}       || 1;
-	$query_string{'sort_by'}    = $query_string{'sort_by'}    || 'created_at';
-	$query_string{'sort_order'} = $query_string{'sort_order'} || 'asc';
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
+	$query_string->{'language'}   = $query_string->{'language'}   || $package->{'language'};
+	$query_string->{'page'}       = $query_string->{'page'}       || 1;
+	$query_string->{'sort_by'}    = $query_string->{'sort_by'}    || 'created_at';
+	$query_string->{'sort_order'} = $query_string->{'sort_order'} || 'asc';
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/favorite_movies',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/favorite_movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -288,23 +296,24 @@ sub Account::favorite {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Faccount%2F{id}%2Ffavorite
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
 
 	my %jsonTemp = (
-		'movie_id' => (delete $query_string{'movie_id'}),
-		'favorite' => (delete $query_string{'favorite'})
+		'movie_id' => (delete $query_string->{'movie_id'}),
+		'favorite' => (delete $query_string->{'favorite'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/favorite',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/favorite',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -316,20 +325,21 @@ sub Account::rated_movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Faccount%2F{id}%2Frated_movies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
-	$query_string{'language'}   = $query_string{'language'}   || $package::language;
-	$query_string{'page'}       = $query_string{'page'}       || 1;
-	$query_string{'sort_by'}    = $query_string{'sort_by'}    || 'created_at';
-	$query_string{'sort_order'} = $query_string{'sort_order'} || 'asc';
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
+	$query_string->{'language'}   = $query_string->{'language'}   || $package->{'language'};
+	$query_string->{'page'}       = $query_string->{'page'}       || 1;
+	$query_string->{'sort_by'}    = $query_string->{'sort_by'}    || 'created_at';
+	$query_string->{'sort_order'} = $query_string->{'sort_order'} || 'asc';
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/rated_movies',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/rated_movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -340,20 +350,21 @@ sub Account::movie_watchlist {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Faccount%2F{id}%2Fmovie_watchlist
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
-	$query_string{'language'}   = $query_string{'language'}   || $package::language;
-	$query_string{'page'}       = $query_string{'page'}       || 1;
-	$query_string{'sort_by'}    = $query_string{'sort_by'}    || 'created_at';
-	$query_string{'sort_order'} = $query_string{'sort_order'} || 'asc';
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
+	$query_string->{'language'}   = $query_string->{'language'}   || $package->{'language'};
+	$query_string->{'page'}       = $query_string->{'page'}       || 1;
+	$query_string->{'sort_by'}    = $query_string->{'sort_by'}    || 'created_at';
+	$query_string->{'sort_order'} = $query_string->{'sort_order'} || 'asc';
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/movie_watchlist',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/movie_watchlist',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -364,23 +375,24 @@ sub Account::modify_movie_watchlist {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Faccount%2F{id}%2Fmovie_watchlist
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'user_id'}    = $query_string{'user_id'}    || $package::user_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'user_id'}    = $query_string->{'user_id'}    || $package->{'user_id'};
 
 	my %jsonTemp = (
-		'movie_id'        => (delete $query_string{'movie_id'}),
-		'movie_watchlist' => (delete $query_string{'movie_watchlist'})
+		'movie_id'        => (delete $query_string->{'movie_id'}),
+		'movie_watchlist' => (delete $query_string->{'movie_watchlist'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
-		'function'     => 'account/'. (delete $query_string{'user_id'}) .'/movie_watchlist',
-		'query_string' => \%query_string
+		'function'     => 'account/'. (delete $query_string->{'user_id'}) .'/movie_watchlist',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -397,15 +409,16 @@ sub Movies::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}),
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}),
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -416,14 +429,14 @@ sub Movies::alternative_titles {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Falternative_titles
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/alternative_titles',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/alternative_titles',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -440,7 +453,7 @@ sub Movies::casts {
 		'function' => 'movie/'. $params->{'movie_id'} .'/casts'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -451,14 +464,14 @@ sub Movies::images {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Fimages
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/images',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/images',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -475,7 +488,7 @@ sub Movies::keywords {
 		'function' => 'movie/'. $params->{'movie_id'} .'/keywords'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -492,7 +505,7 @@ sub Movies::releases {
 		'function' => 'movie/'. $params->{'movie_id'} .'/releases'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -509,7 +522,7 @@ sub Movies::trailers {
 		'function' => 'movie/'. $params->{'movie_id'} .'/trailers'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -526,7 +539,7 @@ sub Movies::translations {
 		'function' => 'movie/'. $params->{'movie_id'} .'/translations'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -537,16 +550,17 @@ sub Movies::similar_movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Fsimilar_movies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/similar_movies',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/similar_movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -557,16 +571,17 @@ sub Movies::reviews {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Freviews
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/reviews',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/reviews',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -577,16 +592,17 @@ sub Movies::lists {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Flists
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/lists',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/lists',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -597,14 +613,14 @@ sub Movies::changes {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Fchanges
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/changes',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/changes',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -620,7 +636,7 @@ sub Movies::latest {
 		'function' => 'movie/latest'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -631,16 +647,17 @@ sub Movies::upcoming {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2Fupcoming
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'movie/upcoming',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -651,16 +668,17 @@ sub Movies::now_playing {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2Fnow_playing
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'movie/now_playing',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -671,16 +689,17 @@ sub Movies::popular {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2Fpopular
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'movie/popular',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -691,16 +710,17 @@ sub Movies::top_rated {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2Ftop_rated
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'}     = $query_string{'page'}     || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'}     = $query_string->{'page'}     || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'movie/top_rated',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -711,15 +731,16 @@ sub Movies::account_states {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2F{id}%2Faccount_states
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/account_states',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/account_states',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -730,25 +751,26 @@ sub Movies::rate {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Fmovie%2F{id}%2Frating
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	if ($query_string{'session_id'} eq "") {
-		delete $query_string{'session_id'};
-		$query_string{'guest_session_id'} = $query_string{'guest_session_id'} || $package::guest_session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	if ($query_string->{'session_id'} eq $EMPTY) {
+		delete $query_string->{'session_id'};
+		$query_string->{'guest_session_id'} = $query_string->{'guest_session_id'} || $package->{'guest_session_id'};
 	}
 
 	my %jsonTemp = (
-		'value' => (delete $query_string{'value'})
+		'value' => (delete $query_string->{'value'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
-		'function'     => 'movie/'. (delete $query_string{'movie_id'}) .'/rating',
-		'query_string' => \%query_string
+		'function'     => 'movie/'. (delete $query_string->{'movie_id'}) .'/rating',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -764,15 +786,16 @@ sub Collections::info {
 	# method by making a /movie/{id} request and paying attention to the belongs_to_collection hash.
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
 
 	my $url = $package->buildURL({
-		'function'     => 'collection/'. (delete $query_string{'id'}),
-		'query_string' => \%query_string
+		'function'     => 'collection/'. (delete $query_string->{'id'}),
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -783,15 +806,16 @@ sub Collections::images {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fcollection%2F{id}%2Fimages
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
 
 	my $url = $package->buildURL({
-		'function'     => 'collection/'. (delete $query_string{'id'}) .'/images',
-		'query_string' => \%query_string
+		'function'     => 'collection/'. (delete $query_string->{'id'}) .'/images',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -806,13 +830,13 @@ sub People::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'person/'. (delete $query_string{'person_id'})
+		'function' => 'person/'. (delete $query_string->{'person_id'})
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -823,14 +847,14 @@ sub People::credits {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2F{id}%2Fcredits
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'person/'. (delete $query_string{'person_id'}) .'/credits',
-		'query_string' => \%query_string
+		'function'     => 'person/'. (delete $query_string->{'person_id'}) .'/credits',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -842,13 +866,13 @@ sub People::images {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2F{id}%2Fimages
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'person/'. (delete $query_string{'person_id'}) .'/images'
+		'function' => 'person/'. (delete $query_string->{'person_id'}) .'/images'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -859,14 +883,14 @@ sub People::changes {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2F{id}%2Fchanges
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'person/'. (delete $query_string{'person_id'}) .'/changes',
-		'query_string' => \%query_string
+		'function'     => 'person/'. (delete $query_string->{'person_id'}) .'/changes',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -877,15 +901,16 @@ sub People::popular {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2Fpopular
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'person/popular',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -901,7 +926,7 @@ sub People::latest {
 		'function' => 'person/latest'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -916,13 +941,13 @@ sub Lists::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Flist%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'list/'. (delete $query_string{'list_id'})
+		'function' => 'list/'. (delete $query_string->{'list_id'})
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -933,14 +958,14 @@ sub Lists::item_status {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Flist%2F{id}%2Fitem_status
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function'     => 'list/'. (delete $query_string{'list_id'}) .'/item_status',
-		'query_string' => \%query_string
+		'function'     => 'list/'. (delete $query_string->{'list_id'}) .'/item_status',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -951,24 +976,25 @@ sub Lists::create {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Flist
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
-	$query_string{'language'} = $query_string{'language'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'session_id'};
 
 	my %jsonTemp = (
-		'language'    => (delete $query_string{'language'}),
-		'name'        => (delete $query_string{'name'}),
-		'description' => (delete $query_string{'description'})
+		'language'    => (delete $query_string->{'language'}),
+		'name'        => (delete $query_string->{'name'}),
+		'description' => (delete $query_string->{'description'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
 		'function'     => 'list',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -980,21 +1006,22 @@ sub Lists::add_item {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Flist%2F{id}%2Fadd_item
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
 
 	my %jsonTemp = (
-		'media_id' => (delete $query_string{'media_id'})
+		'media_id' => (delete $query_string->{'media_id'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
-		'function'     => 'list/'. (delete $query_string{'list_id'}) .'/add_item',
-		'query_string' => \%query_string
+		'function'     => 'list/'. (delete $query_string->{'list_id'}) .'/add_item',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -1006,21 +1033,22 @@ sub Lists::remove_item {
 	# http://docs.themoviedb.apiary.io/#post-%2F3%2Flist%2F{id}%2Fremove_item
 	my $package = shift;
 	my $method = "POST";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
 
 	my %jsonTemp = (
-		'media_id' => (delete $query_string{'media_id'})
+		'media_id' => (delete $query_string->{'media_id'})
 	);
 
 	my $json = encode_json(\%jsonTemp);
 
 	my $url = $package->buildURL({
-		'function'     => 'list/'. (delete $query_string{'list_id'}) .'/remove_item',
-		'query_string' => \%query_string
+		'function'     => 'list/'. (delete $query_string->{'list_id'}) .'/remove_item',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method,
 		'json'   => $json
@@ -1032,15 +1060,16 @@ sub Lists::delete {
 	# http://docs.themoviedb.apiary.io/#delete-%2F3%2Flist%2F{id}
 	my $package = shift;
 	my $method = "DELETE";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'session_id'} = $query_string{'session_id'} || $package::session_id;
+	my $query_string = shift;
+
+	$query_string->{'session_id'} = $query_string->{'session_id'} || $package->{'session_id'};
 
 	my $url = $package->buildURL({
-		'function'     => 'list/'. (delete $query_string{'list_id'}),
-		'query_string' => \%query_string
+		'function'     => 'list/'. (delete $query_string->{'list_id'}),
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1055,13 +1084,13 @@ sub Companies::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fcompany%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'company/'. (delete $query_string{'company_id'})
+		'function' => 'company/'. (delete $query_string->{'company_id'})
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1072,16 +1101,17 @@ sub Companies::movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fcompany%2F{id}%2Fmovies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
 
 	my $url = $package->buildURL({
-		'function'     => 'company/'. (delete $query_string{'company_id'}) .'/movies',
-		'query_string' => \%query_string
+		'function'     => 'company/'. (delete $query_string->{'company_id'}) .'/movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1096,15 +1126,16 @@ sub Genres::list {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fgenre%2Flist
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
 
 	my $url = $package->buildURL({
 		'function'     => 'genre/list',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1115,18 +1146,19 @@ sub Genres::movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fgenre%2F{id}%2Fmovies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
-	$query_string{'include_all_movies'} = $query_string{'include_all_movies'} || 'false';
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
+	$query_string->{'include_all_movies'} = $query_string->{'include_all_movies'} || 'false';
 
 	my $url = $package->buildURL({
-		'function'     => 'genre/'. (delete $query_string{'genre_id'}) .'/movies',
-		'query_string' => \%query_string
+		'function'     => 'genre/'. (delete $query_string->{'genre_id'}) .'/movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1141,13 +1173,13 @@ sub Keywords::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fkeyword%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'keyword/'. (delete $query_string{'keyword_id'})
+		'function' => 'keyword/'. (delete $query_string->{'keyword_id'})
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1158,16 +1190,17 @@ sub Keywords::movies {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fkeyword%2F{id}%2Fmovies
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'} = $query_string{'page'} || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'} = $query_string->{'page'} || 1;
 
 	my $url = $package->buildURL({
-		'function'     => 'keyword/'. (delete $query_string{'keyword_id'}) .'/movies',
-		'query_string' => \%query_string
+		'function'     => 'keyword/'. (delete $query_string->{'keyword_id'}) .'/movies',
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1182,16 +1215,17 @@ sub Discover::movie {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fdiscover%2Fmovie
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'page'} = $query_string{'page'} || 1;
+	my $query_string = shift;
+
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'page'} = $query_string->{'page'} || 1;
 
 	my $url = $package->buildURL({
 		'function'     => 'discover/movie',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1206,17 +1240,18 @@ sub Search::movie {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Fmovie
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/movie',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1227,17 +1262,18 @@ sub Search::collection {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Fcollection
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/collection',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1248,17 +1284,18 @@ sub Search::person {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Fperson
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/person',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1269,17 +1306,18 @@ sub Search::list {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Flist
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/list',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1290,17 +1328,17 @@ sub Search::company {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Fcompany
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/company',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1311,17 +1349,17 @@ sub Search::keyword {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fsearch%2Fkeyword
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
-	$query_string{'page'} = $query_string{'page'} || 1;
-	$query_string{'language'} = $query_string{'language'} || $package::language;
-	$query_string{'include_adult'} = $query_string{'include_adult'} || 'false';
+	my $query_string = shift;
+	$query_string->{'page'} = $query_string->{'page'} || 1;
+	$query_string->{'language'} = $query_string->{'language'} || $package->{'language'};
+	$query_string->{'include_adult'} = $query_string->{'include_adult'} || 'false';
 
 	my $url = $package->buildURL({
 		'function'     => 'search/keyword',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1336,13 +1374,13 @@ sub Reviews::info {
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Freview%2F{id}
 	my $package = shift;
 	my $method = "GET";
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 
 	my $url = $package->buildURL({
-		'function' => 'review/'. (delete $query_string{'review_id'})
+		'function' => 'review/'. (delete $query_string->{'review_id'})
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1358,15 +1396,15 @@ sub Changes::movie {
 	# the actual data that has been changed.
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fmovie%2Fchanges
 	my $package = shift;
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 	my $method = "GET";
 
 	my $url = $package->buildURL({
 		'function'     => 'movie/changes',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1378,15 +1416,15 @@ sub Changes::person {
 	# the actual data that has been changed.
 	# http://docs.themoviedb.apiary.io/#get-%2F3%2Fperson%2Fchanges
 	my $package = shift;
-	my %query_string = ($_[0]) ? %{$_[0]} : ();
+	my $query_string = shift;
 	my $method = "GET";
 
 	my $url = $package->buildURL({
 		'function'     => 'person/changes',
-		'query_string' => \%query_string
+		'query_string' => \%{$query_string}
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1407,7 +1445,7 @@ sub Jobs::list {
 		'function' => 'job/list'
 	});
 
-	$package->getURL({
+	return $package->getURL({
 		'url'    => $url,
 		'method' => $method
 	});
@@ -1431,12 +1469,12 @@ A full feature TMDb client.
 This module is a complete rewrite of my original WWW::TheMovieDB::Search which attempts to 
 allow access to all methods of the API provided by TheMovieDB.
 
-This module requires an API key for TheMovieDB.org, see: L<REFERENCE|reference>
+This module requires an API key for TheMovieDB.org, see: REFERENCE
 
 =head1 DOCUMENTATION
 
 The 000000000000000000000000000000000 should be replaced with your individual API key, you can get an API key
-from TheMovieDB. Review the L<REFERENCE|reference> section for more information.
+from TheMovieDB. Review the REFERENCE section for more information.
 
 Basic initialization.
 
@@ -1623,11 +1661,11 @@ I<Default value:> json
 
 I<Available values:> json
 
-	$api->type('000000000000000000000000000000000');
+	$api->type('json');
 
 =head4 language
 
-Sets the language based on L<ISO 639-1 Language Codes|reference>.
+Sets the language based on ISO 639-1 Language Codes.
 
 I<Default value:> en
 
@@ -1647,19 +1685,19 @@ I<Available values:> 3
 
 =head4 request_token
 
-Sets the request token generated from L<Authentication|authentication>.
+Sets the request token generated from Authentication.
 
 	$api->request_token('000000000000000000000000000000000');
 
 =head4 session_id
 
-Sets the session id generated from L<Authentication|authentication>.
+Sets the session id generated from Authentication.
 
 	$api->session_id('000000000000000000000000000000000');
 
 =head4 guest_session_id
 
-Sets the guest session id generated from L<Authentication|authentication>.
+Sets the guest session id generated from Authentication.
 
 	$api->guest_session_id('000000000000000000000000000000000');
 
@@ -1906,9 +1944,41 @@ I<Required Parameters>
 
 =item *
 
+session_id
+
+=item *
+
 user_id
 
-ID of the user.
+=back
+
+I<Optional Parameters>
+
+=over 1
+
+=item *
+
+language
+
+ISO 639-1 code, default: en
+
+=item *
+
+page
+
+Integer, default: 1
+
+=item *
+
+sort_by
+
+Only "created_at" is currently supported.
+
+=item *
+
+sort_order
+
+asc or desc, default: asc
 
 =back
 
@@ -1932,7 +2002,35 @@ session_id
 
 user_id
 
-ID of the user.
+=back
+
+I<Optional Parameters>
+
+=over 1
+
+=item *
+
+page
+
+Integer, default: 1
+
+=item *
+
+sort_by
+
+Only "created_at" is currently supported.
+
+=item *
+
+sort_order
+
+asc or desc, default: asc
+
+=item *
+
+language
+
+ISO 639-1 code, default: en
 
 =back
 
@@ -3257,7 +3355,7 @@ CGI escaped string
 
 I<Optional Parameters>
 
-=over *
+=over 1
 
 =item *
 
@@ -3438,6 +3536,18 @@ L<http://docs.themoviedb.apiary.io/#jobs>
 Get a list of valid jobs.
 
 	print $api->Jobs::list();
+
+=head1 PREREQUISITES
+
+WWW::TheMovieDB requires the following modules:
+
+L<HTTP::Request|HTTP::Request>
+
+L<LWP::UserAgent|LWP::UserAgent>
+
+L<URI::Escape|URI::Escape>
+
+L<JSON|JSON>
 
 =head1 REFERENCE
 

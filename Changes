@@ -13,3 +13,8 @@ Revision history for Perl extension WWW::TheMovieDB.
 0.04  Mon Jul 29 22:00:00 2013
 	- Update for Perl 10.x
 
+0.05  Fri Sep 13 13:00:00 2013
+,...- Fixed some documentation errors.
+,...- Fixed a couple typos.
+,...- Added a basic test.
+,...- Code cleanup after lashing by Perl::Critic
